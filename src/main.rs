@@ -11,6 +11,7 @@ fn window_config() -> Conf {
 #[macroquad::main(window_config)]
 async fn main() {
     let mut player = Player::new_default();
+    let mut ball = Ball::new_default();
 
     loop {
         clear_background(BLACK);
@@ -27,6 +28,9 @@ async fn main() {
 
         player.update();
         player.draw();
+
+        ball.update();
+        ball.draw();
 
         // quit
         if is_key_down(KeyCode::Escape) {
@@ -46,15 +50,6 @@ struct Player {
 }
 
 impl Player {
-    fn new(x: f32, y: f32, width: f32, height: f32, color: Color) -> Player {
-        Player {
-            x,
-            y,
-            width,
-            height,
-            color,
-        }
-    }
     fn new_default() -> Player {
         Player {
             x: 200f32,
@@ -67,7 +62,7 @@ impl Player {
 
     fn update(&mut self) {
         // move left and right
-        let dx = 1f32;
+        let dx = 0.5f32;
         if is_key_down(KeyCode::Left) {
             self.x -= dx;
         }
@@ -86,5 +81,45 @@ impl Player {
 
     fn draw(&self) {
         draw_rectangle(self.x, self.y, self.width, self.height, self.color);
+    }
+}
+
+struct Ball {
+    x: f32,
+    y: f32,
+    dx: f32,
+    dy: f32,
+    w: f32,
+    h: f32,
+    color: Color,
+}
+
+impl Ball {
+    fn new_default() -> Ball {
+        Ball {
+            x: 200_f32,
+            y: 200_f32,
+            dx: 0.2_f32,
+            dy: 0.2_f32,
+            w: 32_f32,
+            h: 32_f32,
+            color: WHITE,
+        }
+    }
+
+    fn update(&mut self) {
+        self.x += self.dx;
+        self.y += self.dy;
+
+        if self.x > 600f32 || self.x < 0f32 {
+            self.x = 300f32;
+        }
+        if self.y > 600f32 || self.y < 0f32 {
+            self.y = 300f32;
+        }
+    }
+
+    fn draw(&self) {
+        draw_rectangle(self.x, self.y, self.w, self.h, self.color);
     }
 }
