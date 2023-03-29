@@ -12,16 +12,22 @@ fn window_config() -> Conf {
 
 #[macroquad::main(window_config)]
 async fn main() {
-    let score_text = "Score: 0";
+    // set up
+    let mut score: f32 = 0f32;
+    let mut score_text = "Score: 0".to_string();
     let mut player = Paddle::new_default();
     let mut ball = Ball::new_default();
+
+    // let event_queue: Vec<Event> = vec![Event::Start];
 
     loop {
         clear_background(BLACK);
 
+        let delta_t = get_frame_time();
+
         // update
-        player.update();
-        ball.update();
+        player.update(delta_t);
+        score = ball.update(delta_t, score);
 
         // check for collision
         let (is_collide, _cx, cy) = collisions(&mut ball, &mut player);
@@ -40,7 +46,7 @@ async fn main() {
         // draw
         player.draw();
         ball.draw();
-        draw_ui(score_text);
+        score_text = draw_ui(score, score_text);
 
         // quit
         if is_key_down(KeyCode::Escape) {
@@ -66,18 +72,21 @@ struct Paddle {
 
 impl Paddle {
     fn new_default() -> Paddle {
-        let w = 200_f32;
+        let default_width = 150_f32;
+        let default_height = 25_f32;
+
         Paddle {
-            x: screen_width() / 2.0 - w / 2.0,
-            y: 400f32,
-            width: w,
-            height: 50f32,
+            x: screen_width() / 2.0 - default_width / 2.0,
+            y: screen_height() - (default_height * 3.0),
+            width: default_width,
+            height: default_height,
             color: BLUE,
         }
     }
 
-    fn update(&mut self) {
-        let dx = 2f32;
+    fn update(&mut self, _delta_t: f32) {
+        // mPos.y += velocityScale * mVelocity * deltaTime
+        let dx = 4f32 * 60f32 * _delta_t;
 
         // move left and right
         if is_key_down(KeyCode::Left) {
@@ -113,8 +122,8 @@ struct Ball {
 
 impl Ball {
     fn new_default() -> Ball {
-        let rx = rand::gen_range(-1f32, 1f32) * 2.0;
-        let ry = rand::gen_range(-1f32, 1f32) * 2.0;
+        let rx = rand::gen_range(-1f32, 1f32) * 4.0;
+        let ry = rand::gen_range(-1f32, 1f32) * 4.0;
 
         Ball {
             x: 200_f32,
@@ -126,23 +135,53 @@ impl Ball {
             color: RED,
         }
     }
+    fn reset(&mut self) {
+        let rx = rand::gen_range(-1f32, 1f32) * 4.0;
+        let ry = rand::gen_range(-1f32, 1f32) * 4.0;
 
-    fn update(&mut self) {
-        self.x += self.dx;
-        self.y += self.dy;
+        self.x = screen_width() / 2f32;
+        self.y = screen_height() / 2f32;
+        self.dx = rx;
+        self.dy = ry;
+    }
 
-        if self.x > 600f32 || self.x < 0f32 {
-            self.x = screen_width() / 2.0;
-            self.y = screen_height() / 2.0;
-            self.dx = rand::gen_range(-1f32, 1f32);
-            self.dy = rand::gen_range(-1f32, 1f32);
+    fn update(&mut self, _delta_t: f32, score: f32) -> f32 {
+        let mut score_new = score;
+
+        let sw = screen_width();
+        let sh = screen_height();
+
+        if self.x + self.w >= sw || self.x <= 0f32 {
+            // flip direction
+            self.dx *= -1f32;
+            // stop buzzing on edges
+            if self.x < 0f32 {
+                self.x = 0f32;
+            } else {
+                self.x = sw - self.w;
+            }
         }
-        if self.y > 600f32 || self.y < 0f32 {
-            self.x = screen_width() / 2.0;
-            self.y = screen_height() / 2.0;
-            self.dx = rand::gen_range(-1f32, 1f32);
-            self.dy = rand::gen_range(-1f32, 1f32);
+        if self.y > sh || self.y < 0f32 {
+            if self.y <= 0f32 {
+                // top, good
+                score_new += 0.1f32;
+            } else {
+                // bottom, bad
+                score_new -= 0.1f32;
+            }
+
+            self.reset();
         }
+
+        self.x += self.dx * 60f32 * _delta_t;
+        self.y += self.dy * 60f32 * _delta_t;
+
+        // round to nearest n-th
+        let fraction = 10;
+        let score_int = (score_new * fraction as f32) as i32;
+        score_new = score_int as f32 / fraction as f32;
+
+        score_new
     }
 
     fn draw(&self) {
@@ -159,14 +198,23 @@ fn is_native() -> bool {
     false
 }
 
-fn draw_ui(score_text: &str) {
+fn draw_ui(score: f32, score_text_in: String) -> String {
+    // TODO how to optimize this?
+    let mut score_text = score_text_in;
+    if score_text != format!("Score: {}", score) {
+        score_text = format!("Score: {}", score);
+    }
+    let score_ref = score_text.as_str();
+
     let sw = screen_width();
 
     // draw the score, centered
-    let text_dim = measure_text(score_text, None, 32, 1.0);
+    let text_dim = measure_text(score_ref, None, 32, 1.0);
     let text_w = text_dim.width;
     let text_x = sw / 2.0 - text_w / 2.0;
-    draw_text(score_text, text_x, 30.0, 32.0, WHITE);
+    draw_text(score_ref, text_x, 30.0, 32.0, WHITE);
+
+    score_text
 }
 
 fn collisions(ball: &mut Ball, paddle: &mut Paddle) -> (bool, f32, f32) {
