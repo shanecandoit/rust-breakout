@@ -20,6 +20,9 @@ async fn main() {
 
     // let event_queue: Vec<Event> = vec![Event::Start];
 
+    // let mut block_list: Vec<Block> = vec![];
+    let mut block_list = blocks_create(4, 4, 19, 32f32, 64f32);
+
     loop {
         clear_background(BLACK);
 
@@ -46,6 +49,32 @@ async fn main() {
         // draw
         player.draw();
         ball.draw();
+        let mut die_list = vec![];
+        // let mut i=0;
+        for (i, block) in block_list.iter_mut().enumerate() {
+            // }.into_iter().enumerate() {
+            // loop{
+            // let &mut block = block_list[i];
+            let is_alive = block.update(&mut ball);
+            if !is_alive {
+                die_list.push(i);
+                // i+=1;
+                continue;
+            }
+
+            block.draw();
+            // i+=1;
+            // if i>=block_list.len(){
+            //     break;
+            // }
+        }
+        // remove dead blocks
+        for i in die_list.into_iter().rev() {
+            score += 1f32;
+            block_list.swap_remove(i);
+        }
+
+        // draw ui
         score_text = draw_ui(score, score_text);
 
         // quit
@@ -132,7 +161,7 @@ impl Ball {
             dy: ry,
             w: 32_f32,
             h: 32_f32,
-            color: RED,
+            color: GREEN,
         }
     }
     fn reset(&mut self) {
@@ -161,14 +190,17 @@ impl Ball {
                 self.x = sw - self.w;
             }
         }
-        if self.y > sh || self.y < 0f32 {
-            if self.y <= 0f32 {
-                // top, good
-                score_new += 0.1f32;
-            } else {
-                // bottom, bad
-                score_new -= 0.1f32;
-            }
+        if self.y < 0f32 {
+            // top, good
+            score_new += 0.1f32;
+            // flip direction
+            self.dy *= -1f32;
+            // stop buzzing on edges
+            self.y = 0f32;
+        }
+        if self.y > sh {
+            // bottom, bad
+            score_new -= 0.1f32;
 
             self.reset();
         }
@@ -234,4 +266,95 @@ fn collisions(ball: &mut Ball, paddle: &mut Paddle) -> (bool, f32, f32) {
     }
 
     (false, 0f32, 0f32)
+}
+
+fn collisions_block(ball: &mut Ball, paddle: &mut Block) -> (bool, f32, f32) {
+    // https://math.stackexchange.com/questions/99565/simplest-way-to-calculate-the-intersect-area-of-two-rectangles
+
+    // x_overlap and y_overlap are the width and height of the overlap rectangle. postive
+    let mut x_overlap = (ball.x + ball.w).min(paddle.x + paddle.w) - (ball.x).max(paddle.x);
+    let mut y_overlap = (ball.y + ball.h).min(paddle.y + paddle.h) - (ball.y).max(paddle.y);
+    if x_overlap > 0f32 && y_overlap > 0f32 {
+        if ball.x < paddle.x {
+            x_overlap = -x_overlap
+        }
+        if ball.y < paddle.y {
+            y_overlap = -y_overlap
+        }
+        return (true, x_overlap, y_overlap);
+    }
+
+    (false, 0f32, 0f32)
+}
+
+#[derive(Copy, Clone)]
+struct Block {
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    count: i8,
+    color: Color,
+}
+
+impl Block {
+    fn new(x: f32, y: f32, w: f32, h: f32, count: i8, color: Color) -> Block {
+        Block {
+            x,
+            y,
+            w,
+            h,
+            count,
+            color,
+        }
+    }
+
+    fn update(&mut self, ball: &mut Ball) -> bool {
+        // return is_alive
+        let (collided, _x_overlap, _y_overlap) = collisions_block(ball, self);
+        if collided {
+            self.count -= 1;
+            if self.count <= 0 {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn draw(&self) {
+        draw_rectangle(self.x, self.y, self.w, self.h, self.color);
+    }
+}
+
+fn blocks_create(
+    cols: i32,
+    rows: i32,
+    count: i32,
+    block_height: f32,
+    block_width: f32,
+) -> Vec<Block> {
+    let mut blocks = Vec::new();
+
+    let color = RED;
+    let mut x = 0f32;
+    let mut y = 0f32;
+    let w = screen_width() / cols as f32;
+    let h = screen_height() / 2f32 / rows as f32;
+    let mut count_create = 0;
+
+    for _col in 0..rows {
+        for _row in 0..cols {
+            let bx = x + w / 2.0 - block_width as f32 / 2.0;
+            let by = y + h / 2.0 - block_height as f32 / 2.0;
+            blocks.push(Block::new(bx, by, block_width, block_height, 1, color));
+            count_create += 1;
+            if count_create >= count {
+                return blocks;
+            }
+            y += h;
+        }
+        x += w;
+        y = 0f32;
+    }
+    blocks
 }

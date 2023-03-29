@@ -14,15 +14,15 @@ cargo   run   --release --target  x86_64-pc-windows-gnu &
 
 echo
 echo "Size:"
-ls -lh ./target/debug/breakout.exe
+ls -h -s ./target/debug/breakout.exe
 
 # wasm
-# echo "build_wasm 21"
+echo "Build Wasm:"
 # # rustup  target add      wasm32-unknown-unknown &
 cargo   build --target  wasm32-unknown-unknown &
-# echo "Size Wasm:"
-ls -lh ./target/wasm32-unknown-unknown/debug/breakout.wasm
-# echo "Run:"
+echo "Size Wasm:"
+ls -h -s ./target/wasm32-unknown-unknown/debug/breakout.wasm
+# echo "Run Wasm:"
 # cargo install basic-http-server
 # basic-http-server .
 
