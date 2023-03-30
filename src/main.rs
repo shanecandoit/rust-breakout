@@ -17,11 +17,12 @@ async fn main() {
     let mut score_text = "Score: 0".to_string();
     let mut player = Paddle::new_default();
     let mut ball = Ball::new_default();
+    let mut block_count = 16;
 
     // let event_queue: Vec<Event> = vec![Event::Start];
 
     // let mut block_list: Vec<Block> = vec![];
-    let mut block_list = blocks_create(4, 4, 19, 32f32, 64f32);
+    let mut block_list = blocks_create(4, 4, block_count, 32f32, 64f32);
 
     loop {
         clear_background(BLACK);
@@ -63,16 +64,20 @@ async fn main() {
             }
 
             block.draw();
-            // i+=1;
-            // if i>=block_list.len(){
-            //     break;
-            // }
         }
         // remove dead blocks
         for i in die_list.into_iter().rev() {
             score += 1f32;
             block_list.swap_remove(i);
         }
+
+        // all blocks gone?
+        block_list = if block_list.len() == 0 {
+            block_count += 2;
+            blocks_create(4, 4, block_count, 32f32, 64f32)
+        } else {
+            block_list
+        };
 
         // draw ui
         score_text = draw_ui(score, score_text);
@@ -189,6 +194,9 @@ impl Ball {
             } else {
                 self.x = sw - self.w;
             }
+
+            // small penalty for hitting the edge
+            score_new -= 0.01f32;
         }
         if self.y < 0f32 {
             // top, good
@@ -200,7 +208,7 @@ impl Ball {
         }
         if self.y > sh {
             // bottom, bad
-            score_new -= 0.1f32;
+            score_new -= 1f32;
 
             self.reset();
         }
