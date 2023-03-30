@@ -20,8 +20,10 @@ ls -h -s ./target/debug/breakout.exe
 echo "Build Wasm:"
 # # rustup  target add      wasm32-unknown-unknown &
 cargo   build --target  wasm32-unknown-unknown &
+cargo   build --target  wasm32-unknown-unknown --release &
 echo "Size Wasm:"
 ls -h -s ./target/wasm32-unknown-unknown/debug/breakout.wasm
+ls -h -s ./target/wasm32-unknown-unknown/release/breakout.wasm
 # echo "Run Wasm:"
 # cargo install basic-http-server
 # basic-http-server .
