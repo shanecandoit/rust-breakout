@@ -1,6 +1,9 @@
 use macroquad::prelude::*;
 use std::env;
 use std::{thread, time};
+// use rand::Rng;
+// use rand::Rng;
+// use rand::Rng;
 
 fn window_config() -> Conf {
     Conf {
@@ -156,27 +159,35 @@ struct Ball {
 
 impl Ball {
     fn new_default() -> Ball {
-        let rx = rand::gen_range(-1f32, 1f32) * 4.0;
-        let ry = rand::gen_range(-1f32, 1f32) * 4.0;
+        let delta = 4f32;
+        let choices = vec![delta, -delta];
+        let rand_x = *rand::ChooseRandom::choose(&choices).unwrap();
+        let rand_y = *rand::ChooseRandom::choose(&choices).unwrap();
 
+        let x_mid = screen_width() / 2f32;
+        let x_offset = rand::gen_range(-1f32, 1f32) * 64.0;
+        let y_mid = screen_height() / 2f32;
+        let y_offset = rand::gen_range(-1f32, 1f32) * 64.0;
         Ball {
-            x: 200_f32,
-            y: 200_f32,
-            dx: rx,
-            dy: ry,
+            x: x_mid + x_offset,
+            y: y_mid + y_offset,
+            dx: rand_x,
+            dy: rand_y,
             w: 32_f32,
             h: 32_f32,
             color: GREEN,
         }
     }
     fn reset(&mut self) {
-        let rx = rand::gen_range(-1f32, 1f32) * 4.0;
-        let ry = rand::gen_range(-1f32, 1f32) * 4.0;
+        let delta = 4f32;
+        let choices = vec![delta, -delta];
+        let rand_x = *rand::ChooseRandom::choose(&choices).unwrap();
+        let rand_y = *rand::ChooseRandom::choose(&choices).unwrap();
 
         self.x = screen_width() / 2f32;
         self.y = screen_height() / 2f32;
-        self.dx = rx;
-        self.dy = ry;
+        self.dx = rand_x;
+        self.dy = rand_y;
     }
 
     fn update(&mut self, _delta_t: f32, score: f32) -> f32 {
